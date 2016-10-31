@@ -9,6 +9,7 @@ public class Tetragon : MonoBehaviour {
     Vector3 _rotateAxis;
 	// Use this for initialization
 	void Start () {
+        //_rotateAxis = Vector3.up; //Random.insideUnitSphere;
         _rotateAxis = Random.insideUnitSphere;
     }
 	
