@@ -2,6 +2,8 @@ Shader "VertexAnim/OneTime (Instanced)" {
 	Properties {
 		_MainTex ("Base (RGB) Gloss (A)", 2D) = "white" {}
         _Color ("Color", Color) = (1,1,1,1)
+		_Scale ("Scale", float) = 1
+
 		
 		_AnimTex ("PosTex", 2D) = "white" {}
 		_AnimTex_Scale ("Scale", Vector) = (1,1,1,1)
@@ -37,6 +39,7 @@ Shader "VertexAnim/OneTime (Instanced)" {
             
             sampler2D _MainTex;
             float4 _Color;
+			float _Scale;
             
             vs2ps vert(vsin v) {
                 vs2ps OUT;
@@ -48,7 +51,7 @@ Shader "VertexAnim/OneTime (Instanced)" {
                 t = clamp(t, 0, _AnimTex_AnimEnd.x);
                 v.vertex.xyz = AnimTexVertexPos(v.vertex, v.vid, t);
                 
-                OUT.vertex = UnityObjectToClipPos(v.vertex);
+                OUT.vertex = UnityObjectToClipPos(v.vertex * _Scale);
                 OUT.uv = v.texcoord;
                 return OUT;
             }

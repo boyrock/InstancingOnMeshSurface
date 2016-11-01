@@ -9,9 +9,6 @@ public class RandomOnMeshSurface : MonoBehaviour
     float[] _triangleSizes;
 
     [SerializeField]
-    public GameObject _instancingObjectPrefab;
-
-    [SerializeField]
     public Mesh _instancingMesh;
 
     [SerializeField]
@@ -24,6 +21,8 @@ public class RandomOnMeshSurface : MonoBehaviour
 
     Quaternion _initRotation;
     Vector3 _initPosition;
+
+    Vector3[] _initVertices;
 
 
     // Use this for initialization
@@ -47,6 +46,8 @@ public class RandomOnMeshSurface : MonoBehaviour
                 _mesh = smr.sharedMesh;
         }
 
+        _initVertices = _mesh.vertices;
+
         int triangle_count = _mesh.triangles.Length / 3;
 
         int pointCount = 0;
@@ -66,43 +67,35 @@ public class RandomOnMeshSurface : MonoBehaviour
                 break;
 
             var size = _triangleSizes[i];
-            var t = Normalized(minTriangleSize, maxTriangleSize, size);
-            int roopCount = (int)Mathf.Lerp(4, 4, t);
+
+            float t = 1;
+            if (minTriangleSize != maxTriangleSize)
+                t = Normalized(minTriangleSize, maxTriangleSize, size);
+
+            int roopCount = (int)Mathf.Lerp(15, 15, t);
 
             for (int j = 0; j < roopCount; j++)
             {
                 if (_instancingMaxCount > 0 && pointCount >= _instancingMaxCount)
                     break;
 
-                var position = GetPointOnMesh(i);
-
-                //var flower = Instantiate<GameObject>(_instancingObjectPrefab);
-                //flower.transform.SetParent(this.transform);
-                //flower.transform.position = position.point;
-                //flower.transform.rotation = Quaternion.LookRotation(position.normal);
-
-                //var normalize = position.normal;
-                //flower.transform.Rotate(r, Space.Self);
-
-                //flower.transform.Rotate(transform.rotation.eulerAngles, Space.World);
-
-                //Debug.DrawRay(position.point, flower.transform.rotation.eulerAngles.normalized, Color.red, 1000);
-
-                //var t = RotatePointAroundPivot(transform.position, this.transform.position, this.transform.rotation.eulerAngles);
-
-                //var t = RotatePointAroundPivot(transform.position, this.transform.position, this.transform.rotation.eulerAngles - _initRotation.eulerAngles);
-                //position.point = RotatePointAroundPivot(position.point, this.transform.position, this.transform.rotation.eulerAngles - _initRotation.eulerAngles);
-
 
                 TransformData data = new TransformData();
+
+                var position = GetPointOnMesh(i, data);
+
+                data.trianleIndex = i;
                 data.position = position.point;
                 data.normalized = position.normal;
 
                 var rotation = Quaternion.LookRotation(position.normal);
                 rotation = rotation * Quaternion.Euler(r);
+
+                Quaternion angle = Quaternion.AngleAxis(Random.Range(0,360f), Vector3.up);
+                rotation = rotation * angle;
                 data.rotation = rotation;
 
-                data.speed = Random.Range(0.8f, 1f);
+                data.speed = Random.Range(0.7f, 1f);
 
                 pointCount++;
 
@@ -135,7 +128,7 @@ public class RandomOnMeshSurface : MonoBehaviour
         return size;
     }
 
-    RaycastHit GetPointOnMesh(int index)
+    RaycastHit GetPointOnMesh(int index, TransformData data)
     {
         RaycastHit hit = new RaycastHit();
 
@@ -143,10 +136,27 @@ public class RandomOnMeshSurface : MonoBehaviour
         Vector3 p2 = _mesh.vertices[_mesh.triangles[(index * 3) + 1]];
         Vector3 p3 = _mesh.vertices[_mesh.triangles[(index * 3) + 2]];
 
-        var m = GetRandomPositionBetween(p1, p2);
-        var m1 = GetRandomPositionBetween(m, p3);
+        float r = Random.value;
+        float s = Random.value;
 
-        hit.point = transform.TransformPoint(m1);
+        if (r + s >= 1)
+        {
+            r = 1 - r;
+            s = 1 - s;
+        }
+
+        float a = 1 - r - s;
+        float b = r;
+        float c = s;
+
+        Vector3 pointOnMesh = a * p1 + b * p2 + c * p3;
+
+        //and then turn them back to a Vector3
+        //Vector3 pointOnMesh = p1 + r * (p2 - p1) + s * (p3 - p1);
+
+        data.xy = new Vector2(r, s);
+
+        hit.point = transform.TransformPoint(pointOnMesh);
         hit.normal = GetNormal(p1, p2, p3);
 
         return hit;
@@ -159,11 +169,11 @@ public class RandomOnMeshSurface : MonoBehaviour
         return Vector3.Cross(side1, side2).normalized;
     }
 
-    Vector3 GetRandomPositionBetween(Vector3 from, Vector3 to)
+    Vector3 GetRandomPositionBetween(Vector3 from, Vector3 to, float t)
     {
         Vector3 position;
         var direction = from - to;
-        position = to + direction.normalized * Mathf.Lerp(0, direction.magnitude, Random.Range(0.2f,0.8f));
+        position = to + direction.normalized * Mathf.Lerp(0, direction.magnitude, t);
         return position;
     }
 
@@ -176,11 +186,15 @@ public class RandomOnMeshSurface : MonoBehaviour
     [SerializeField]
     Vector3 r;
 
+    [SerializeField]
+    float _scale;
+
     // Update is called once per frame
     void Update()
     {
         if (_block == null)
             _block = new MaterialPropertyBlock();
+
 
         _t += Time.deltaTime * _speed;
 
@@ -188,13 +202,15 @@ public class RandomOnMeshSurface : MonoBehaviour
         {
             var transform = _positions[i];
 
-            _block.SetFloat("_AnimTex_T", _t * transform.speed);
+            _mat.SetFloat("_Scale", _scale);
+            _mat.SetFloat("_AnimTex_T", _t * transform.speed);
 
             var t = RotatePointAroundPivot(transform.position + this.transform.position - _initPosition, this.transform.position, this.transform.rotation * Quaternion.Inverse(_initRotation));
             var rotation = this.transform.rotation * transform.rotation;
 
             Graphics.DrawMesh(_instancingMesh, t, rotation, _mat, 0, null, 0, _block, false, false);
         }
+
     }
     
     public Vector3 RotatePointAroundPivot(Vector3 point, Vector3 pivot, Quaternion angles)
@@ -207,10 +223,11 @@ public class RandomOnMeshSurface : MonoBehaviour
 
     public struct TransformData
     {
+        public int trianleIndex { get; set; }
         public Vector3 position { get; set; }
         public Vector3 normalized { get; set; }
         public Quaternion rotation { get; set; }
         public float speed { get; set; }
-        public Vector3 offset { get; set; }
+        public Vector2 xy { get; set; }
     }
 }
