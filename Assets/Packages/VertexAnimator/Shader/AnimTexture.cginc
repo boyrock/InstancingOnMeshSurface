@@ -18,9 +18,15 @@ half4 _AnimTex_NormalTex_TexelSize;
 #if defined(INSTANCING_ON)
 UNITY_INSTANCING_CBUFFER_START(Props)
 UNITY_DEFINE_INSTANCED_PROP(float, _AnimTex_T)
+UNITY_DEFINE_INSTANCED_PROP(float, _Scale)
+UNITY_DEFINE_INSTANCED_PROP(float4x4, _Position)
+UNITY_DEFINE_INSTANCED_PROP(float3, _Velocity)
 UNITY_INSTANCING_CBUFFER_END
 #else
 float _AnimTex_T;
+float _Scale;
+float4x4 _Position;
+float3 _Velocity;
 #endif
 
 

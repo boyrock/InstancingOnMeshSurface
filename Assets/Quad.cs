@@ -23,7 +23,14 @@ public class Quad : MonoBehaviour {
 
         for (int i = 0; i < _vertices.Length; i++)
         {
-            _vertices_c[i] = _vertices[i] + offset;
+            if (i == 0)
+            {
+                _vertices_c[i] = _vertices[i] + offset;
+            }
+            else
+            {
+                _vertices_c[i] = _vertices[i];
+            }
         }
 
         _mesh.vertices =_vertices_c;

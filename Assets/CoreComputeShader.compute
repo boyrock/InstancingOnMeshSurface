@@ -1,0 +1,69 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Update
+
+#define BLOCK_SIZE 8
+
+struct InstanceData
+{
+	 int trianleIndex;
+	 float3 position;
+	 float3 normalized;
+	 float3 rotation;
+	 float speed;
+	 float2 xy;
+	 float angle;
+	 float3 velocity;
+	 float3 position1;
+	 bool IsAlive;
+	 float LifeTime;
+	 int LoopCount;
+};
+
+RWStructuredBuffer<InstanceData> data;
+StructuredBuffer<float3> vertices;
+StructuredBuffer<int> triangles;
+
+
+float3 GetNormal(float3 a, float3 b, float3 c)
+{
+	float3 side1 = b - a;
+	float3 side2 = c - a;
+	return normalize(cross(side1, side2));
+}
+
+[numthreads(BLOCK_SIZE,1,1)]
+void Update (uint3 id : SV_DispatchThreadID)
+{
+	// TODO: insert actual code here!
+
+	bool isAlive = data[id.x].IsAlive;
+
+	isAlive = true;
+	if (isAlive == true)
+	{
+		int i = data[id.x].trianleIndex;
+
+		float3 p1 = vertices[triangles[(i * 3)]];
+		float3 p2 = vertices[triangles[(i * 3) + 1]];
+		float3 p3 = vertices[triangles[(i * 3) + 2]];
+
+		float u = data[id.x].xy.x;
+		float v = data[id.x].xy.y;
+
+		if (u + v >= 1)
+		{
+			u = 1 - u;
+			v = 1 - v;
+		}
+
+		float a = 1 - u - v;
+		float b = u;
+		float c = v;
+
+		float3 pointOnMesh = a * p1 + b * p2 + c * p3;
+
+		data[id.x].position = pointOnMesh;
+		data[id.x].normalized = GetNormal(p1, p2, p3);
+	}
+}
+
